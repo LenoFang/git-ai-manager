@@ -27,7 +27,10 @@ jobs:
           echo "$(brew --prefix python)/libexec/bin" >> "$GITHUB_PATH"
 
       - name: Install PyInstaller
-        run: python3 -m pip install --upgrade pyinstaller
+        # Homebrew 的 python 被标记为 externally-managed (PEP 668)，
+        # 必须 --break-system-packages 才能装到系统目录；
+        # 之后 build-macos.command 里 `import PyInstaller` 命中，跳过它自己的 pip 安装。
+        run: python3 -m pip install --break-system-packages --upgrade pyinstaller
 
       - name: Build .app
         run: bash build-macos.command
