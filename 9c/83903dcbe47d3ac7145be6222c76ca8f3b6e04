@@ -1,0 +1,14 @@
+.gitignore
+  h_63cdaa24d5fd94 19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9c83903dcbe47d3ac7145be6222c76ca8f3b6e04",
+  "prompts": {},
+  "humans": {
+    "h_63cdaa24d5fd94": {
+      "author": "方梁 <fl13011@ly.com>"
+    }
+  }
+}
