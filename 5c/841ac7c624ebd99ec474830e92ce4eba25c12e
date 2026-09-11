@@ -1,0 +1,46 @@
+.github/workflows/build-macos.yml
+  h_63cdaa24d5fd94 1-40
+.gitignore
+  h_63cdaa24d5fd94 1-18
+README.md
+  h_63cdaa24d5fd94 1-294
+build-exe.cmd
+  h_63cdaa24d5fd94 1-46
+build-macos.command
+  h_63cdaa24d5fd94 1-46
+entry.py
+  h_63cdaa24d5fd94 1-86
+git-ai-manager-gui.py
+  h_63cdaa24d5fd94 1-1537
+git-ai-manager.py
+  h_63cdaa24d5fd94 1-3219
+legacy-powershell/Convert-GitAiHumanNotes.ps1
+  h_63cdaa24d5fd94 1-143
+legacy-powershell/Install-GitAiPreCommit.ps1
+  h_63cdaa24d5fd94 1-143
+legacy-powershell/Normalize-GitAiNotes.ps1
+  h_63cdaa24d5fd94 1-66
+legacy-powershell/Repair-GitAiEmptyNotes.ps1
+  h_63cdaa24d5fd94 1-194
+legacy-powershell/notes-updated-ai.ps1
+  h_63cdaa24d5fd94 1-174
+legacy-powershell/postcommit-ai.ps1
+  h_63cdaa24d5fd94 1-39
+legacy-powershell/precommit-ai.ps1
+  h_63cdaa24d5fd94 1-84
+manager.example.json
+  h_63cdaa24d5fd94 1-32
+使用说明.md
+  h_63cdaa24d5fd94 1-283
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5c841ac7c624ebd99ec474830e92ce4eba25c12e",
+  "prompts": {},
+  "humans": {
+    "h_63cdaa24d5fd94": {
+      "author": "方梁 <fl13011@ly.com>"
+    }
+  }
+}
