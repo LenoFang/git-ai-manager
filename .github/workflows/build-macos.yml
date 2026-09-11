@@ -1,0 +1,40 @@
+name: Build macOS .app
+
+# 在 Windows 上无法直接用 PyInstaller 交叉编译 macOS 的 .app，
+# 因此本工作流借助 GitHub Actions 的 macos-latest 云 Mac 完成构建。
+# 使用方式：
+#   1. 把本仓库 git init 并推送到 GitHub
+#   2. 在仓库 Actions 页手动 Run workflow，或打 v* tag 自动触发
+#   3. 构建完成后到 Artifacts 下载 git-ai-manager-macos（即 .app）
+# 注意：产物未签名，别人 Mac 上首次打开会被 Gatekeeper 拦（右键->打开可绕过）。
+
+on:
+  workflow_dispatch:          # 手动触发
+  push:
+    tags: ["v*"]             # 打 tag 自动构建
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python + tkinter
+        # GitHub 自带 python 不含 tkinter，必须用 Homebrew 的 python + python-tk
+        run: |
+          brew install python python-tk
+          echo "$(brew --prefix python)/libexec/bin" >> "$GITHUB_PATH"
+
+      - name: Install PyInstaller
+        run: python3 -m pip install --upgrade pyinstaller
+
+      - name: Build .app
+        run: bash build-macos.command
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: git-ai-manager-macos
+          path: dist/git-ai-manager.app
+          retention-days: 30

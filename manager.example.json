@@ -1,0 +1,32 @@
+{
+  "_readme": [
+    "Template for manager.json - copy it next to git-ai-manager.py (the git-ai home)",
+    "or point GIT_AI_MANAGER_CONFIG at it. '~' and $ENVIRONMENT variables are expanded.",
+    "Relative paths are resolved against the directory that holds this file.",
+    "Comments are tolerated, but plain JSON is safest."
+  ],
+
+  "projectsRoots": [
+    "~/Projects",
+    "~/dev/repos"
+  ],
+
+  "defaults": {
+    "tool": "codex",
+    "model": "unknown",
+    "syncNotes": true,
+    "convertLocalHuman": true,
+    "remote": "origin"
+  },
+
+  "repos": {
+    "$HOME/Projects/example-repo": {
+      "tool": "codex",
+      "model": "unknown"
+    },
+    "$HOME/Projects/another-repo": {
+      "tool": "claude",
+      "model": "claude-opus-4-8"
+    }
+  }
+}

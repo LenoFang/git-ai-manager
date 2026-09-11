@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+python/
+runtime/
+
+# 本机运行时数据（换机器会重新生成）
+manager.json
+gui-config.json
+manager-logs/
+notes-repo-map/
+
+# 打包产物
+build/
+dist/
+*.spec
