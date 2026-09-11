@@ -16,3 +16,5 @@ notes-repo-map/
 build/
 dist/
 *.spec
+
+mac-build/
