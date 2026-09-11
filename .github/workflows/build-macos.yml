@@ -35,9 +35,11 @@ jobs:
       - name: Build .app
         run: bash build-macos.command
 
+      - name: Zip .app (macOS zip 保留 bundle 结构与可执行位)
+        run: cd dist && zip -r ../git-ai-manager-macos.zip git-ai-manager.app
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: git-ai-manager-macos
-          path: dist/git-ai-manager.app
+          path: git-ai-manager-macos.zip
           retention-days: 30
