@@ -1,0 +1,22 @@
+README.md
+  h_63cdaa24d5fd94 242-354
+build-macos.command
+  h_63cdaa24d5fd94 9,41-42,45-52,55
+entry.py
+  h_63cdaa24d5fd94 78-88
+git-ai-manager-gui.py
+  h_63cdaa24d5fd94 1561-1570
+使用说明.md
+  h_63cdaa24d5fd94 49-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b5c0f46d5399d7d986069cb932154cb482369fc8",
+  "prompts": {},
+  "humans": {
+    "h_63cdaa24d5fd94": {
+      "author": "方梁 <fl13011@ly.com>"
+    }
+  }
+}
