@@ -1,0 +1,19 @@
+.github/workflows/build-macos.yml
+  s_a23dd5a1f70f46::t_93a79cd400814f 38-39,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "26ca72217a0332501b004ac95865e05b84131fba",
+  "prompts": {},
+  "sessions": {
+    "s_a23dd5a1f70f46": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "ai-thread-1789264704852",
+        "model": "unknown"
+      },
+      "human_author": "方梁 <fl13011@ly.com>"
+    }
+  }
+}
