@@ -1,14 +1,19 @@
 .github/workflows/build-macos.yml
-  h_63cdaa24d5fd94 30-33
+  s_de8b21b0971b4e::t_37daecdb7d294f 30-33
 ---
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.7.4",
   "base_commit_sha": "558aa08a81f1f148682b00ba7eb18624771c5baa",
   "prompts": {},
-  "humans": {
-    "h_63cdaa24d5fd94": {
-      "author": "方梁 <fl13011@ly.com>"
+  "sessions": {
+    "s_de8b21b0971b4e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "ai-thread-1789264705390",
+        "model": "unknown"
+      },
+      "human_author": "方梁 <fl13011@ly.com>"
     }
   }
 }
