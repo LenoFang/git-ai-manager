@@ -1,0 +1,31 @@
+.gitignore
+  s_b2c4fe815f4e4d::t_df98c17eede44d 18-19
+README.md
+  s_b2c4fe815f4e4d::t_df98c17eede44d 176-178
+build-exe.cmd
+  s_b2c4fe815f4e4d::t_df98c17eede44d 4-7,12-17,19-24,27-28,31-32,35-36,38,43-45
+git-ai-manager-gui.py
+  s_b2c4fe815f4e4d::t_df98c17eede44d 71,857-859,1042-1070
+git-ai-manager.py
+  s_b2c4fe815f4e4d::t_df98c17eede44d 94,2433-2476,2493-2518,2521-2526,2528-2529,2564-2568,2570-2571,3210,3214-3225
+使用说明.md
+  s_b2c4fe815f4e4d::t_df98c17eede44d 113-138,213,229-230
+启动界面.cmd
+  s_b2c4fe815f4e4d::t_df98c17eede44d 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e26051f47026a7f78139cb9c02ea7653d5fd25a7",
+  "prompts": {},
+  "sessions": {
+    "s_b2c4fe815f4e4d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "ai-thread-1789265330285",
+        "model": "unknown"
+      },
+      "human_author": "方梁 <fl13011@ly.com>"
+    }
+  }
+}
