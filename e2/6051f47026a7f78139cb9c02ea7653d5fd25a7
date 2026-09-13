@@ -1,0 +1,26 @@
+.gitignore
+  h_63cdaa24d5fd94 18-19
+README.md
+  h_63cdaa24d5fd94 176-178
+build-exe.cmd
+  h_63cdaa24d5fd94 4-7,12-17,19-24,27-28,31-32,35-36,38,43-45
+git-ai-manager-gui.py
+  h_63cdaa24d5fd94 71,857-859,1042-1070
+git-ai-manager.py
+  h_63cdaa24d5fd94 94,2433-2476,2493-2518,2521-2526,2528-2529,2564-2568,2570-2571,3210,3214-3225
+使用说明.md
+  h_63cdaa24d5fd94 113-138,213,229-230
+启动界面.cmd
+  h_63cdaa24d5fd94 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e26051f47026a7f78139cb9c02ea7653d5fd25a7",
+  "prompts": {},
+  "humans": {
+    "h_63cdaa24d5fd94": {
+      "author": "方梁 <fl13011@ly.com>"
+    }
+  }
+}
