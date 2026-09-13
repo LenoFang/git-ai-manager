@@ -1880,6 +1880,12 @@ def configure_git_ai_hook(python: str, manager: str, *, dry_run: bool, restart: 
     return configured
 
 
+def emit_json(payload: object) -> int:
+    """Machine readable output for scripts and agents."""
+    info(json.dumps(payload, indent=2, ensure_ascii=False))
+    return 0
+
+
 def cmd_install(args: argparse.Namespace) -> int:
     config = load_config()
     repos = collect_repos(args, config)
@@ -1917,6 +1923,20 @@ def cmd_install(args: argparse.Namespace) -> int:
             dry_run=bool(getattr(args, "dry_run", False)),
             restart=not bool(getattr(args, "no_daemon_restart", False)),
         )
+    payload = {
+        "python": python,
+        "manager": str(manager),
+        "home": str(home_dir()),
+        "git_ai": find_git_ai(),
+        "git_ai_hook_configured": hook_ok,
+        "installed": installed,
+        "unchanged": unchanged,
+        "failed": failed,
+        "pruned_map_entries": pruned,
+        "dry_run": bool(getattr(args, "dry_run", False)),
+    }
+    if getattr(args, "json", False):
+        return emit_json(payload)
     info("=== git-ai manager install ===")
     if is_frozen():
         info("运行方式      : 独立 exe（目标机器不需要 Python）")
@@ -1995,6 +2015,13 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
         if executable and not getattr(args, "dry_run", False):
             run([executable, "config", "unset", GIT_AI_HOOK_KEY])
             run([executable, "bg", "restart", "--hard"], timeout=120)
+    if getattr(args, "json", False):
+        return emit_json({
+            "home": str(home_dir()),
+            "changed": changed,
+            "git_ai_hook_cleared": not bool(getattr(args, "keep_git_ai_config", False)),
+            "dry_run": bool(getattr(args, "dry_run", False)),
+        })
     info("=== git-ai manager uninstall ===")
     for label in changed:
         info(f"  - {label}")
@@ -2039,7 +2066,10 @@ def sync_repo(repo: object, *, remote: str, dry_run: bool, push: bool) -> tuple[
         if dry_run:
             return "would-push", "remote has no notes ref"
         result = git(["push", "--quiet", remote, f"{NOTES_REFNAME}:{NOTES_REFNAME}"], repo, timeout=600)
-        return ("pushed", "") if result.returncode == 0 else ("push-failed", tail_error(result))
+        if result.returncode == 0:
+            mark_snapshot_current(repo)
+            return "pushed", ""
+        return "push-failed", tail_error(result)
     if snapshot and not local:
         if dry_run:
             return "would-adopt-remote", ""
@@ -2058,7 +2088,22 @@ def sync_repo(repo: object, *, remote: str, dry_run: bool, push: bool) -> tuple[
     if not push:
         return "merged", "not pushed (--no-push)"
     result = git(["push", "--quiet", remote, f"{NOTES_REFNAME}:{NOTES_REFNAME}"], repo, timeout=600)
-    return ("merged-pushed", "") if result.returncode == 0 else ("push-failed", tail_error(result))
+    if result.returncode == 0:
+        mark_snapshot_current(repo)
+        return "merged-pushed", ""
+    return "push-failed", tail_error(result)
+
+
+def mark_snapshot_current(repo: object) -> None:
+    """Remember that the remote now holds exactly what we have.
+
+    Without this the remote column of `status` keeps saying "pending" after a
+    successful push, because the snapshot still reflects the last fetch.
+    """
+    local = rev_parse(repo, NOTES_REFNAME)
+    if local:
+        git(["update-ref", REMOTE_SNAPSHOT_REF, local], repo)
+        invalidate_notes_cache(repo)
 
 
 def tail_error(result: subprocess.CompletedProcess) -> str:
@@ -2187,6 +2232,7 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     include_human = bool(getattr(args, "include_human", False))
     subject = getattr(args, "subject_pattern", None)
     rows: list[list[object]] = []
+    payload: list[dict] = []
     total = 0
     for repo in repos:
         tool, model = resolve_tool_model(config, repo)
@@ -2215,6 +2261,26 @@ def cmd_normalize(args: argparse.Namespace) -> int:
                     f"{tool}::{model}",
                 ]
             )
+            payload.append(
+                {
+                    "repo": str(repo),
+                    "name": repo.name,
+                    "scanned": counts["scanned"],
+                    "mock_ai": counts["mock_ai"],
+                    "human": counts["human"],
+                    "foreign_human": counts["foreign-human"],
+                    "failed": counts["failed"],
+                    "tool": tool,
+                    "model": model,
+                }
+            )
+    if getattr(args, "json", False):
+        return emit_json({
+            "mode": "apply" if apply else "dry-run",
+            "include_human": include_human,
+            "total_rewritable": total,
+            "repos": payload,
+        })
     info("=== git-ai note normalization ===")
     info(render_table(["REPOSITORY", "MOCK_AI", "HUMAN", "OTHER-HUMAN", "FAILED", "TOOL::MODEL"], rows)
          if rows else "nothing matched")
@@ -2559,6 +2625,24 @@ def cmd_repair_empty(args: argparse.Namespace) -> int:
             if getattr(args, "show", False):
                 info("-" * 60)
                 info(built)
+    if getattr(args, "json", False):
+        return emit_json({
+            "repo": str(repo),
+            "rev": rev,
+            "since": since,
+            "until": until,
+            "scanned": scanned,
+            "missing": missing_total,
+            "processed": len(commits),
+            "written": written,
+            "mode": "apply" if apply else "dry-run",
+            "tool": tool,
+            "model": model,
+            "rows": [
+                {"commit": row[0], "result": row[1], "ai_lines": row[2], "note": row[3]}
+                for row in rows
+            ],
+        })
     info("=== git-ai empty note repair ===")
     info(f"repository : {repo}")
     if getattr(args, "scan_missing", False):
@@ -3156,12 +3240,14 @@ def build_parser() -> argparse.ArgumentParser:
     inst.add_argument("--no-git-ai-config", action="store_true", help="do not touch git_ai_hooks.post_notes_updated")
     inst.add_argument("--no-daemon-restart", action="store_true")
     inst.add_argument("--legacy", action="store_true", help="write the PowerShell based hooks instead")
+    inst.add_argument("--json", action="store_true", help="machine readable summary")
 
     unin = sub.add_parser("uninstall", help="remove the managed hook blocks")
     add_scope_arguments(unin)
     unin.add_argument("--python", help="interpreter used when restoring legacy hooks")
     unin.add_argument("--dry-run", action="store_true")
     unin.add_argument("--keep-git-ai-config", action="store_true")
+    unin.add_argument("--json", action="store_true", help="machine readable summary")
 
     hook = sub.add_parser("hook", help="hook entry points (called by git)")
     hook.add_argument("kind", choices=["pre-commit", "post-commit", "normalize-later"])
@@ -3199,6 +3285,7 @@ def build_parser() -> argparse.ArgumentParser:
     norm.add_argument("--email", action="append", metavar="ADDR", help="author filter (repeatable)")
     norm.add_argument("--subject-pattern", metavar="REGEX", help="only convert commits whose subject matches")
     norm.add_argument("--limit", type=int)
+    norm.add_argument("--json", action="store_true", help="machine readable summary")
 
     conv = sub.add_parser("convert-human", help="rewrite historical human notes into AI sessions")
     add_scope_arguments(conv)
@@ -3226,6 +3313,7 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("--apply", action="store_true", help="write notes (default: dry-run)")
     repair.add_argument("--force", action="store_true", help="overwrite notes that already have attribution")
     repair.add_argument("--show", action="store_true", help="print the generated note in dry-run mode")
+    repair.add_argument("--json", action="store_true", help="machine readable summary")
 
     status = sub.add_parser("status", help="per repository authorship summary")
     add_scope_arguments(status)
