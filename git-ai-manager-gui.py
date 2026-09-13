@@ -68,6 +68,7 @@ GUI_CONFIG_NAME = "gui-config.json"
 CONSOLE_LIMIT = 4000
 PAD = 6
 RECORDS_ALL_LABEL = "（全部仓库 - 较慢）"
+BACKFILL_LIMIT = 200
 
 
 def script_dir() -> Path:
@@ -853,8 +854,9 @@ class App(tk.Tk):
         ttk.Button(toolbar, text="卸载", command=self.uninstall_selected).grid(row=0, column=3, padx=2)
         ttk.Button(toolbar, text="归一化选中", command=self.normalize_selected).grid(row=0, column=4, padx=2)
         ttk.Button(toolbar, text="修复空 note", command=self.repair_selected).grid(row=0, column=5, padx=2)
-        ttk.Button(toolbar, text="诊断", command=self.diagnose_selected).grid(row=0, column=6, padx=2)
-        ttk.Button(toolbar, text="设置工具模型", command=self.edit_repo_tool).grid(row=0, column=7, padx=2)
+        ttk.Button(toolbar, text="补全历史", command=self.backfill_selected).grid(row=0, column=6, padx=2)
+        ttk.Button(toolbar, text="诊断", command=self.diagnose_selected).grid(row=0, column=7, padx=2)
+        ttk.Button(toolbar, text="设置工具模型", command=self.edit_repo_tool).grid(row=0, column=8, padx=2)
 
         columns = [
             ("name", "仓库", 150, "w", False),
@@ -1036,6 +1038,35 @@ class App(tk.Tk):
             return "\n".join(lines)
 
         self.submit("修复空 note", work, lambda ok, payload: (self.log(payload), self.scan_repos()))
+
+    def backfill_selected(self) -> None:
+        """给"完全没有 AI 记录"的历史提交补上归属（装 git-ai 之前的提交）。"""
+        selection = self.require_selection()
+        if not selection:
+            return
+        if not messagebox.askyesno(
+            APP_TITLE,
+            f"为选中的 {len(selection)} 个仓库补全历史？\n\n"
+            f"只处理「没有任何 AI 记录」的提交（比如装 git-ai 之前的提交），"
+            f"已有记录不会被改动。\n"
+            f"每条按 commit diff 生成行归属，写入当前配置的工具/模型。\n\n"
+            f"每个仓库最多处理 {BACKFILL_LIMIT} 条，历史很长时可以多点几次（幂等）。\n"
+            f"想先看条数：命令行 repair-empty --repo <路径> --scan-missing",
+        ):
+            return
+
+        def work():
+            lines: list[str] = []
+            for repo in selection:
+                code, text = self.call([
+                    "repair-empty", "--repo", repo, "--scan-missing",
+                    "--apply", "--limit", str(BACKFILL_LIMIT),
+                ])
+                lines.append(f"--- {repo} (exit {code}) ---\n{text.strip()}")
+            return "\n".join(lines)
+
+        self.submit(f"补全历史 {len(selection)} 个仓库", work,
+                    lambda ok, payload: (self.log(payload), self.scan_repos()))
 
     def diagnose_selected(self) -> None:
         """把「为什么没算成 AI」的诊断结果列出来，方便发给别人看。"""

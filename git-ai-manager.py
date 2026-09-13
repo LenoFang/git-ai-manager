@@ -91,6 +91,7 @@ LEGACY_MARKERS = ("precommit-ai.ps1", "postcommit-ai.ps1", "notes-updated-ai.ps1
 HOOK_KINDS = ("pre-commit", "post-commit")
 
 DEFAULT_REPO_DEPTH = 4
+DEFAULT_BACKFILL_LIMIT = 200
 
 # Directories that are never repositories themselves and are expensive to walk.
 PRUNE_DIR_NAMES = frozenset(
@@ -2429,6 +2430,50 @@ def empty_note_candidates(repo: object) -> list[str]:
     return candidates
 
 
+def commits_missing_notes(
+    repo: object,
+    *,
+    rev: str = "HEAD",
+    since: str | None = None,
+    until: str | None = None,
+    limit: int | None = None,
+) -> list[str]:
+    """Commits reachable from rev that have no authorship note at all.
+
+    These are the commits made before git-ai (or this tool) was in the picture:
+    there is nothing to rewrite, the attribution has to be built from the diff.
+    """
+    argv = ["log", "--format=%H"]
+    if since:
+        argv.append(f"--since={since}")
+    if until:
+        argv.append(f"--until={until}")
+    argv.append(rev)
+    text = git_text(argv, repo)
+    if text is None:
+        return []
+    known = notes_index(repo, NOTES_REFNAME)
+    missing = [line.strip() for line in text.splitlines() if line.strip() and line.strip() not in known]
+    if limit is not None and limit > 0:
+        missing = missing[:limit]
+    return missing
+
+
+def count_commits(repo: object, *, rev: str = "HEAD", since: str | None = None,
+                  until: str | None = None) -> int:
+    argv = ["rev-list", "--count"]
+    if since:
+        argv.append(f"--since={since}")
+    if until:
+        argv.append(f"--until={until}")
+    argv.append(rev)
+    value = git_line(argv, repo)
+    try:
+        return int(value or 0)
+    except ValueError:
+        return 0
+
+
 def cmd_repair_empty(args: argparse.Namespace) -> int:
     config = load_config()
     if getattr(args, "repo", None):
@@ -2445,10 +2490,43 @@ def cmd_repair_empty(args: argparse.Namespace) -> int:
         commits += [c for c in re.split(r"[,\s]+", value) if c]
     if getattr(args, "scan", False):
         commits += empty_note_candidates(repo)
+    rev = getattr(args, "branch", None) or "HEAD"
+    since = getattr(args, "since", None)
+    until = getattr(args, "until", None)
+    limit = getattr(args, "limit", None)
+    span = (f"（{since or '最早'} ~ {until or '最新'}）" if (since or until) else "")
+    scanned = 0
+    missing_total = 0
+    if getattr(args, "scan_missing", False):
+        # 先做「廉价扫描」：只数数，不算 diff，几秒就能出结果
+        scanned = count_commits(repo, rev=rev, since=since, until=until)
+        found = commits_missing_notes(repo, rev=rev, since=since, until=until, limit=None)
+        missing_total = len(found)
+        if getattr(args, "count_only", False):
+            info("=== git-ai 历史补全（仅统计）===")
+            info(f"repository : {repo}")
+            info(f"范围       : {rev}{span}")
+            info(f"提交总数   : {scanned}")
+            info(f"已有记录   : {scanned - missing_total}")
+            info(f"缺记录     : {missing_total}")
+            if missing_total:
+                info("")
+                info(f"补全命令   : {APP} repair-empty --repo \"{repo}\" --scan-missing --apply")
+            return 0
+        if limit is None:
+            limit = DEFAULT_BACKFILL_LIMIT
+        commits += found[:limit] if (limit and limit > 0) else found
     commits = list(dict.fromkeys(commits))
     if not commits:
+        if getattr(args, "scan_missing", False):
+            info(f"=== git-ai 历史补全 ===")
+            info(f"repository : {repo}")
+            info(f"范围       : {rev}{f'（since {since}）' if since else ''}")
+            info(f"扫描 {scanned} 条提交，全部都有 AI 记录，无需补全。")
+            return 0
         raise SystemExit(
-            f"{APP}: nothing to repair - pass --commits <sha,...> or --scan for notes without line attribution"
+            f"{APP}: nothing to repair - pass --commits <sha,...>, --scan (notes without line "
+            f"attribution) or --scan-missing (commits without any note)"
         )
     version = git_ai_version()
     apply = bool(getattr(args, "apply", False))
@@ -2483,7 +2561,14 @@ def cmd_repair_empty(args: argparse.Namespace) -> int:
                 info(built)
     info("=== git-ai empty note repair ===")
     info(f"repository : {repo}")
+    if getattr(args, "scan_missing", False):
+        info(f"范围       : {rev}{f'（since {since}）' if since else ''}")
+        info(f"扫描 {scanned} 条提交：已有记录 {scanned - missing_total} 条，"
+             f"缺记录 {missing_total} 条，本次处理 {len(commits)} 条"
+             + (f"（--limit {limit}）" if limit and missing_total > limit else ""))
     info(render_table(["COMMIT", "RESULT", "AI-LINES", "NOTE"], rows))
+    if written:
+        info(f"已写入 {written} 条 note（工具/模型：{tool}::{model}）")
     info("mode: APPLY" if apply else "mode: DRY-RUN (re-run with --apply to write)")
     return 0
 
@@ -3122,10 +3207,22 @@ def build_parser() -> argparse.ArgumentParser:
     conv.add_argument("--subject-pattern", metavar="REGEX", help="only convert commits whose subject matches")
     conv.add_argument("--limit", type=int)
 
-    repair = sub.add_parser("repair-empty", help="rebuild line attribution for notes that have none")
+    repair = sub.add_parser("repair-empty", help="rebuild line attribution for commits that have none")
     repair.add_argument("--repo", metavar="DIR", help="repository (default: current directory)")
     repair.add_argument("--commits", action="append", metavar="SHA", help="commit(s), comma separated, repeatable")
     repair.add_argument("--scan", action="store_true", help="find notes without line attribution automatically")
+    repair.add_argument("--scan-missing", dest="scan_missing", action="store_true",
+                        help="find commits that have no note at all (history from before git-ai)")
+    repair.add_argument("--branch", metavar="REV",
+                        help="history to scan with --scan-missing (branch, tag or A..B; default HEAD)")
+    repair.add_argument("--since", metavar="DATE",
+                        help="only consider commits newer than DATE, e.g. 2025-01-01 or '6 months ago'")
+    repair.add_argument("--until", metavar="DATE",
+                        help="only consider commits older than DATE, e.g. 2026-04-01")
+    repair.add_argument("--limit", type=int, metavar="N",
+                        help=f"process at most N commits (default {DEFAULT_BACKFILL_LIMIT}; 0 = no limit)")
+    repair.add_argument("--count-only", dest="count_only", action="store_true",
+                        help="with --scan-missing: only report how many commits lack a note, then stop")
     repair.add_argument("--apply", action="store_true", help="write notes (default: dry-run)")
     repair.add_argument("--force", action="store_true", help="overwrite notes that already have attribution")
     repair.add_argument("--show", action="store_true", help="print the generated note in dry-run mode")

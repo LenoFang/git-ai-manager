@@ -173,6 +173,9 @@ python git-ai-manager.py refresh-notes --repo <路径> --apply
 python git-ai-manager.py normalize --apply [--include-human]
 python git-ai-manager.py convert-human --apply [--email X --subject-pattern REGEX]
 python git-ai-manager.py repair-empty --repo <路径> --scan --apply   # 重建无行归属的 note
+python git-ai-manager.py repair-empty --repo <路径> --scan-missing --count-only            # 历史缺多少条
+python git-ai-manager.py repair-empty --repo <路径> --scan-missing [--since DATE] [--branch REV] [--limit N] --apply
+                                                          # 给「装 git-ai 之前」的提交补记录
 ```
 
 批量操作默认 **dry-run**，确认没问题再加 `--apply`。
