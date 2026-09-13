@@ -2569,6 +2569,16 @@ def cmd_repair_empty(args: argparse.Namespace) -> int:
         found = commits_missing_notes(repo, rev=rev, since=since, until=until, limit=None)
         missing_total = len(found)
         if getattr(args, "count_only", False):
+            if getattr(args, "json", False):
+                return emit_json({
+                    "repo": str(repo),
+                    "rev": rev,
+                    "since": since,
+                    "until": until,
+                    "scanned": scanned,
+                    "with_notes": scanned - missing_total,
+                    "missing": missing_total,
+                })
             info("=== git-ai 历史补全（仅统计）===")
             info(f"repository : {repo}")
             info(f"范围       : {rev}{span}")

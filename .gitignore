@@ -17,6 +17,11 @@ build/
 dist/
 dist-new/
 dist-out/
+dist-cli/
 *.spec
 
 mac-build/
+
+# macOS
+.DS_Store
+._*
