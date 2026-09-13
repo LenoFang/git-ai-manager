@@ -6,6 +6,7 @@
 #  产物：dist/git-ai-manager.app     分发时整个 .app 发过去
 # ---------------------------------------------------------------
 set -e
+chmod +x "$0" 2>/dev/null || true   # 从 Windows 提交过来时可能丢了可执行位
 cd "$(dirname "$0")"
 
 PY=python3
@@ -37,10 +38,19 @@ echo "[3/3] 复制说明文档 ..."
 mkdir -p dist
 cp -f *.md manager.example.json dist/
 
+APPBIN="$(pwd)/dist/git-ai-manager.app/Contents/MacOS/git-ai-manager"
+
 echo
 echo "打包完成： $(pwd)/dist/git-ai-manager.app"
-echo "自检：     ./dist/git-ai-manager.app/Contents/MacOS/git-ai-manager --selftest"
+echo
+echo "macOS 上没有 Windows 那种「控制台/窗口」子系统之分，"
+echo "所以同一个 .app 既能开界面，也能当命令行用："
+echo
+echo "  开界面：   open dist/git-ai-manager.app        （或双击）"
+echo "  命令行：   \"$APPBIN\" status --json"
+echo "             \"$APPBIN\" repair-empty --repo <路径> --scan-missing --count-only --json"
+echo "  自检：     \"$APPBIN\" --selftest"
 echo
 echo "分发方式：把 dist/git-ai-manager.app 和 dist/*.md 一起发出去。"
-echo "注意：首次打开会被 Gatekeeper 拦（未签名），右键  打开 即可。"
+echo "注意：首次打开会被 Gatekeeper 拦（未签名）——右键 → 打开 即可（命令行方式不受影响）。"
 echo "配置和日志写在 .app 所在目录，不会写进 .app 包内部。"

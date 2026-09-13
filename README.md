@@ -239,6 +239,119 @@ git-ai-manager.exe status --json   # 带参数 = 命令行
 3. windowed（无控制台）构建下 Python 的 stdout/stderr 默认被丢弃，代码里做了三件事：接管继承的 std 句柄（`exe status > out.txt` 可用）、实在没有控制台就把输出写进 `manager-logs\`、统一成 UTF-8。
 4. 调用子进程统一加 `CREATE_NO_WINDOW`：无控制台进程每次调 `git` 都会新分配一个控制台，实测 ~200 ms/次。
 
+## macOS
+
+代码本身就是跨平台的，而且 **macOS 没有 Windows 那种「控制台 / 窗口」子系统之分，
+所以一个 `.app` 同时就是界面和命令行** —— 不需要像 Windows 那样出两个产物。
+
+### 第 0 步：先装 git-ai 本体
+
+本工具只是"管理器"，真正记录 AI 归属的是 **git-ai 本体**；Mac 上也必须先有它。
+
+```bash
+# 1) 确认 git 版本够新（git-ai 会检查；太旧时它会直接提示）
+git --version
+#    太旧就升级（git-ai 自己的提示里也是这么写的）：
+brew install git
+
+# 2) 官方安装脚本（macOS / Linux 通用），默认装到 ~/.git-ai/bin/git-ai
+curl -fsSL https://usegitai.com/install.sh | bash
+
+# 3) 让 shell 能找到它（写进 ~/.zshrc 或 ~/.bash_profile；装完脚本一般也会提示）
+echo 'export PATH="$HOME/.git-ai/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# 4) 验证：应输出 1.7.4 这类版本号
+git-ai version
+```
+
+> 也可以让 git-ai 自己写 PATH：`git-ai install --env`（顺带会装它自己那套钩子，
+> 本工具不需要那套，用上面的 `export PATH` 更干净）。
+> 如果公司内网有自己的分发渠道，拿到 `git-ai` 二进制放到 `~/.git-ai/bin/` 即可。
+
+### 构建（在 Mac 上，或放进 CI）
+
+```bash
+chmod +x build-macos.command      # 从 Windows 提交过去的话可执行位可能丢了（脚本自己也会再 chmod 一次）
+./build-macos.command
+```
+
+产物：`dist/git-ai-manager.app`。
+
+### 用法
+
+```bash
+open dist/git-ai-manager.app                                   # 打开界面
+./dist/git-ai-manager.app/Contents/MacOS/git-ai-manager status --json
+                                                               # 命令行（会等待、能抓输出）
+./dist/git-ai-manager.app/Contents/MacOS/git-ai-manager --selftest   # 自检
+```
+
+首次双击会被 Gatekeeper 拦（未签名）：**右键 → 打开**即可；命令行方式不受影响。
+
+### 到手后要做的三步
+
+```bash
+APP=./dist/git-ai-manager.app/Contents/MacOS/git-ai-manager
+"$APP" --selftest                       # 1. 自检：环境 / git-ai / 扫描
+"$APP" install --depth 4                # 2. 装钩子（钩子里写的是绝对路径，所以先放好位置）
+"$APP" status                           # 3. 确认
+```
+
+配置与日志写在 **.app 所在目录**（不会写进 .app 包内部）；`.app` 移动位置后请重新执行一次 `install`。
+
+### git-ai 到底在哪里找（macOS）
+
+本工具按这个顺序找 `git-ai`（`find_git_ai_with_origin()`）：
+
+```
+1. 环境变量 GIT_AI_EXE
+2. PATH
+3. <工具目录>/bin/git-ai            ← 便携包：把 git-ai 二进制放这里随 .app 一起发
+4. ~/.git-ai/bin/git-ai             ← 官方脚本的默认安装位置
+5. ~/.local/bin、~/.cargo/bin、~/bin
+6. /usr/local/bin、/opt/homebrew/bin、/usr/bin、/opt/local/bin
+```
+
+**第 4 条很关键**：从 Finder / Dock 启动的 `.app` **不会继承你 shell 里的 PATH**
+（`.zshrc` 里的 `export PATH` 只对终端生效）—— 这时靠第 4 条照样能找到 git-ai。
+所以按上面的官方脚本安装（装到 `~/.git-ai/bin`）是最省事的做法。
+
+找不到时的三种办法：
+
+```bash
+# a) 临时指定（或写进 shell rc / launchd，取决于你怎么启动）
+export GIT_AI_EXE="$HOME/.git-ai/bin/git-ai"
+open dist/git-ai-manager.app
+
+# b) 用界面：设置 → git-ai 可执行文件 → 「自动检测」（会列出每一处找过的位置）
+#    或「浏览…」手动指定
+
+# c) 便携包：把 git-ai 放进 .app 所在目录的 bin/ 里
+mkdir -p bin && cp ~/.git-ai/bin/git-ai bin/     # 与 .app 同级
+```
+
+### 放进 GitHub Actions（macOS runner）
+
+```yaml
+- uses: actions/setup-python@v5
+  with:
+    python-version: '3.12'
+- run: python3 -c "import tkinter" || brew install python-tk
+- run: python3 -m pip install --upgrade pyinstaller
+- run: chmod +x build-macos.command && ./build-macos.command
+- uses: actions/upload-artifact@v4
+  with:
+    name: git-ai-manager-macos
+    path: dist/git-ai-manager.app
+```
+
+说明：
+- `actions/setup-python` 装的 python.org 版通常自带 tkinter；若报缺 tkinter 就照上面那行 `brew install python-tk`，
+  并把构建脚本里的 `PY=python3` 改成 `/opt/homebrew/bin/python3`。
+- macOS 产物**未签名/未公证**，同事首次打开需要右键 → 打开（或在「系统设置 → 隐私与安全性」里放行）。
+- 如果你要同时出 Windows 和 macOS，两边产物共用同一套源码与 `manager.json` 结构，互不干扰。
+
 ## 别人机器上「全是 human add」怎么查
 
 `git-ai stats <sha> --json` 里 `human_additions` 占满、`ai_additions` 为 0，说明 note 存在但被

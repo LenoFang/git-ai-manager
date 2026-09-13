@@ -75,7 +75,17 @@ def main() -> int:
             return gui.selftest()
         return gui.main()
     except SystemExit as exc:
-        return exc.code if isinstance(exc.code, int) else 0
+        # argparse/参数校验用 SystemExit(2)；我们用 SystemExit("消息") 表示错误，
+        # 这种必须返回非 0，否则脚本和 agent 无法判断失败。
+        if isinstance(exc.code, int):
+            return exc.code
+        if exc.code:
+            try:
+                sys.stderr.write(str(exc.code) + "\n")
+            except Exception:
+                pass
+            return 1
+        return 0
     except BaseException:
         _emergency_log()
         traceback.print_exc()

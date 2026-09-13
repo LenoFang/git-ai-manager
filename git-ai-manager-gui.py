@@ -1558,7 +1558,16 @@ def main() -> int:
         app.mainloop()
         return 0
     except SystemExit as exc:
-        return exc.code if isinstance(exc.code, int) else 0
+        # 同上：字符串消息代表出错，必须非 0
+        if isinstance(exc.code, int):
+            return exc.code
+        if exc.code:
+            try:
+                sys.stderr.write(str(exc.code) + "\n")
+            except Exception:
+                pass
+            return 1
+        return 0
     except BaseException:
         traceback.print_exc()
         return 1
