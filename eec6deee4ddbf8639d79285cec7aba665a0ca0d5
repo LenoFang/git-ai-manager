@@ -1,18 +1,23 @@
 .gitignore
-  h_63cdaa24d5fd94 20,24-27
+  s_b5230553b64944::t_39f339b32d5741 20,24-27
 build-exe.cmd
-  h_63cdaa24d5fd94 3,5-9,15,21,24,28,32-38,43-46,51-52
+  s_b5230553b64944::t_39f339b32d5741 3,5-9,15,21,24,28,32-38,43-46,51-52
 git-ai-manager.py
-  h_63cdaa24d5fd94 2572-2581
+  s_b5230553b64944::t_39f339b32d5741 2572-2581
 ---
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.7.4",
   "base_commit_sha": "eec6deee4ddbf8639d79285cec7aba665a0ca0d5",
   "prompts": {},
-  "humans": {
-    "h_63cdaa24d5fd94": {
-      "author": "方梁 <fl13011@ly.com>"
+  "sessions": {
+    "s_b5230553b64944": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "ai-thread-1789609269993",
+        "model": "unknown"
+      },
+      "human_author": "方梁 <fl13011@ly.com>"
     }
   }
 }
