@@ -1,14 +1,19 @@
 git-ai-manager.py
-  h_63cdaa24d5fd94 1883-1888,1926-1939,2018-2024,2069-2072,2091-2106,2235,2264-2283,2628-2645,3243,3250,3288,3316
+  s_6985cc1ddf2742::t_34272718245643 1883-1888,1926-1939,2018-2024,2069-2072,2091-2106,2235,2264-2283,2628-2645,3243,3250,3288,3316
 ---
 {
   "schema_version": "authorship/3.0.0",
   "git_ai_version": "1.7.4",
   "base_commit_sha": "c13bd530fdd174e9a18b959985b148ff1fc744c4",
   "prompts": {},
-  "humans": {
-    "h_63cdaa24d5fd94": {
-      "author": "方梁 <fl13011@ly.com>"
+  "sessions": {
+    "s_6985cc1ddf2742": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "ai-thread-1789609269557",
+        "model": "unknown"
+      },
+      "human_author": "方梁 <fl13011@ly.com>"
     }
   }
 }
